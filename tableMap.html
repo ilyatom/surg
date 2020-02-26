@@ -1,0 +1,314 @@
+<html>
+<head>
+	<meta charset="utf-8">
+</head>
+<body onload="start()">
+	<table cellspacing="20px">
+		<tr valign="top">
+			<td><div id="map"></td>
+			<td><div id="text"></td>
+		</tr>
+	</table>
+	<script src="js/randomizer.js"></script>
+	<script src="js/tables.js"></script>
+	<script>
+
+		function start() {
+			tableMap.init();
+			document.getElementById('map').innerHTML = tableMap.draw();
+			document.getElementById('text').innerHTML = tableMap.write();
+		}
+
+		//=========================================
+
+		let tableMap = new Object();
+		tableMap.height = 20;
+		tableMap.width = 20;
+		tableMap.squares = Array();
+		tableMap.ruins = Array();
+		tableMap.settlements = Array();
+
+		iterationsHeight = 0;
+		iterationsWidth = 0;
+
+		tableMap.init = function() {
+			this.fill();
+			this.generateRuins();
+			this.generateSettlements();
+			this.putPoints(this.ruins);
+			this.putPoints(this.settlements);
+		}
+
+		tableMap.fill = function () {
+				for (var iterationsHeight = 1; iterationsHeight <= tableMap.height; iterationsHeight++) {
+					tableMap.squares[iterationsHeight] = Array();
+					for (var iterationsWidth = 1; iterationsWidth <= tableMap.width; iterationsWidth++) {
+						this.generateSquare(iterationsHeight,iterationsWidth);
+					}
+				}	
+		}
+
+		tableMap.putPoints = function(array) {
+			for (var i = array.length - 1; i >= 0; i--) {
+				let done = true;
+				while(done) {
+					height = getRandomInt(1,this.height);
+					width = getRandomInt(1,this.width);
+					if(typeof this.squares[height][width].symbol == 'undefined') {
+						this.squares[height][width].symbol = array[i].symbol;
+						done = false;
+					}
+				}
+			}
+
+		}
+
+		//--- VIEWS
+
+		tableMap.write = function () {
+			let view = '';
+			view += '<h2>R — Руины</h2>';
+			for (var i = 0; i <= this.ruins.length - 1; i++) {
+				view += this.getViewRuin(this.ruins[i]);
+			}
+			view += '<h2>S — Поселения</h2>';
+			for (var i = 0; i <= this.settlements.length - 1; i++) {
+				view += this.getViewSettlement(this.settlements[i]);
+			}
+			return view;
+		}
+
+		tableMap.getViewRuin = function(ruin) {
+			let view = '';
+			view += ruin.symbol + ' — '+ruin.purpose+' '+ruin.founders+' (пришло в упадок '+ruin.destructionTime+' лет назад из-за '+ruin.destructionReason+')<br>';
+			return view;
+		}
+
+		tableMap.getViewSettlement = function(settlement) {
+			let view = '';
+			view += settlement.symbol + ' — ' + settlement.subtype + ' ' + settlement.name + ' (главный промысел: ' + settlement.work +'; цвета для вдохновения: ' + settlement.color +')<br>';
+			return view;
+		}
+
+		tableMap.draw = function () {
+			let view = '<table border=0px>';
+				for (var iterationsHeight = 1; iterationsHeight <= tableMap.height; iterationsHeight++) {
+					view += '<tr valign="middle">';
+					for (var iterationsWidth = 1; iterationsWidth <= tableMap.width; iterationsWidth++) {
+						square = this.squares[iterationsHeight][iterationsWidth];
+						if(typeof square.symbol != 'undefined') {
+							view += '<td bgcolor="#'+square.color+'" align="center" height="20px" width="20px"><strong>'+ square.symbol +'</strong></td>';
+						} else {
+							view += '<td bgcolor="#'+square.color+'" align="center" height="20px" width="20px">'+ square.flora +'</td>';
+						}
+					}
+					view += '</tr>';
+				}
+			view += '</table>';
+			return view;
+		}
+
+		//--- GENERATORS
+
+		tableMap.generateSquare = function(h,w) {
+			this.generateSquareTerrain(h,w);
+		}
+
+		tableMap.generateRuins = function() {
+			let ruinsAmount = Math.floor((this.height*this.width)/55);
+			let i = 0;
+			while (i != ruinsAmount) {
+				let ruin = this.generateRuin(i);
+				this.ruins.push(ruin);
+				i++;
+			}
+		}
+
+		tableMap.generateSettlements = function() {
+			let settlementAmount = Math.floor((this.height*this.width)/55);
+			let i = 0;
+			while (i != settlementAmount) {
+				let settlement = this.generateSettlement(i,settlementAmount);
+				this.settlements.push(settlement);				
+				i++;
+			}
+		}
+
+		tableMap.generateSettlement = function(i,settlementAmount) {
+			let settlement = {};
+			let citiesPercent = 10;
+			let citiesAmount = Math.floor(settlementAmount/100*citiesPercent);
+			let townsPercent = 30;
+			let townsAmount = Math.floor(settlementAmount/100*townsPercent);
+			if(i<=citiesAmount) {
+				settlement = this.generateCity(i);
+			} else if(i>citiesAmount && i<=townsAmount) {
+				settlement = this.generateTown(i);
+			} else {
+				settlement = this.generateVillage(i);
+			}
+			console.log(settlement);
+			return settlement;
+		}
+
+		tableMap.generateCity = function(number) {
+			let city = {
+				type: 'settlement',
+				symbol: 'S'+(number+1),
+				subtype : 'Город',
+				name: this.getSettlementName(),
+				color: getRandomValueFromArray(color) + ' и ' + getRandomValueFromArray(color),
+				work: getRandomValueFromArray(work) + ' и ' + getRandomValueFromArray(work),
+			}
+			return city;
+		}
+
+		tableMap.generateTown = function(number) {
+			let town = {
+				type: 'settlement',
+				symbol: 'S'+(number+1),
+				subtype: 'Поселок',
+				name: this.getSettlementName(),
+				color: getRandomValueFromArray(color) + ' и ' + getRandomValueFromArray(color),
+				work: getRandomValueFromArray(work)
+			}
+			return town;
+		}
+
+		tableMap.generateVillage = function(number) {
+			let village = {
+				type: 'settlement',
+				symbol: 'S'+(number+1),
+				subtype: 'Деревня',
+				name: this.getSettlementName(),
+				color: getRandomValueFromArray(color),
+				work: getRandomValueFromArray(work)
+			}
+			return village;
+		}	
+
+		tableMap.getSettlementName = function () {
+			let name = '';
+			let dice = d(2);
+			if(dice == 1) {
+				name = getRandomValueFromArray(first)+getRandomValueFromArray(middle)+getRandomValueFromArray(last);
+			} else {
+				name = getRandomValueFromArray(first)+getRandomValueFromArray(last);
+			}
+			return name;
+		}
+
+		tableMap.generateRuin = function(number) {
+			let ruin = {
+				type: 'ruin',
+				symbol: 'R'+(number+1),
+				founders: getRandomValueFromArray(founders),
+				purpose : getRandomValueFromArray(purpose),
+				destructionTime : getRandomInt(100,2000),
+				destructionReason : getRandomValueFromArray(destructionReason),
+			}
+			return ruin;
+		}
+
+		tableMap.generateSquareTerrain = function(h,w) {
+			let square = new Object();
+			let color = '';
+
+			square.level = null;
+			square.Floraevel = null;
+
+			let diceThrow = d(100);
+			let chanceToBeTheSame = 80;
+			let halfChanceToBeTheSame = chanceToBeTheSame/2;
+			let chanceToBeNear = 20;
+			let halfChanceToBeNear = chanceToBeNear/2;
+
+			//проверяем, есть ли элемент слева
+			if(typeof tableMap.squares[h][w-1] !== "undefined") {
+				let leftSquareLevel = tableMap.squares[h][w-1].level;
+				let leftSquareFloraLevel = tableMap.squares[h][w-1].Floraevel;
+				let opportunities = Array();
+				let opportunitiesFlora = Array();
+				if (diceThrow >= 1 & diceThrow < halfChanceToBeTheSame) {
+					square.level = leftSquareLevel;
+					square.Floraevel = leftSquareFloraLevel;
+				} else {
+					if (diceThrow >= halfChanceToBeTheSame & diceThrow < halfChanceToBeTheSame+halfChanceToBeNear) {
+						leftLevelPLusOne = leftSquareLevel+1;
+						leftLevelMinusOne = leftSquareLevel-1;
+
+						leftFloraLevelPLusOne = leftSquareFloraLevel+1;
+						leftFloraLevelMinusOne = leftSquareFloraLevel-1;
+
+						if (typeof colors[leftLevelPLusOne] !== "undefined") {
+							opportunities.push(leftSquareLevel+1);
+						}
+						if (typeof colors[leftLevelMinusOne] !== "undefined") {
+							opportunities.push(leftSquareLevel-1);
+						}
+						rand = getRandomInt(0,opportunities.length-1);
+						square.level = opportunities[rand];
+
+						if (typeof colors[leftFloraLevelPLusOne] !== "undefined") {
+							opportunitiesFlora.push(leftFloraLevelPLusOne);
+						}
+						if (typeof colors[leftFloraLevelMinusOne] !== "undefined") {
+							opportunitiesFlora.push(leftFloraLevelMinusOne);
+						}
+						rand = getRandomInt(0,opportunitiesFlora.length-1);
+						square.Floraevel = opportunitiesFlora[rand];
+					}
+				}
+
+			}
+
+			if(square.level == null) {
+
+			// //проверяем, есть ли элемент сверху
+			if(typeof tableMap.squares[h-1] !== "undefined") {
+				let leftSquareLevel = tableMap.squares[h-1][w].level;
+				let leftSquareFloraLevel = tableMap.squares[h-1][w].Floraevel;
+				let opportunities = Array();
+				if (diceThrow >= halfChanceToBeNear+halfChanceToBeTheSame & diceThrow < halfChanceToBeTheSame+halfChanceToBeTheSame+halfChanceToBeNear) {
+					square.level = leftSquareLevel;
+					square.Floraevel = leftSquareFloraLevel;
+				} else {
+					if (diceThrow >= halfChanceToBeTheSame+halfChanceToBeTheSame+halfChanceToBeNear & diceThrow < 100) {
+						leftLevelPLusOne = leftSquareLevel+1;
+						leftLevelMinusOne = leftSquareLevel-1;
+
+						leftFloraLevelPLusOne = leftSquareFloraLevel+1;
+						leftFloraLevelMinusOne = leftSquareFloraLevel-1;
+
+						if (typeof colors[leftLevelPLusOne] !== "undefined") {
+							opportunities.push(leftSquareLevel+1);
+						}
+						if (typeof colors[leftLevelMinusOne] !== "undefined") {
+							opportunities.push(leftSquareLevel-1);
+						}
+						rand = getRandomInt(0,opportunities.length-1);
+						square.level = opportunities[rand];
+					}
+				}
+			}
+
+		}
+
+
+			if(square.level == null) {
+				// square.level = getRandomInt(0,colors.length-1);
+				square.level = 2;
+			}
+			if(square.Floraevel == null) {
+				// square.Floraevel = 1;
+				square.Floraevel = getRandomInt(0,flora.length-1);
+			}
+			// записываем цвет и пишем клетку в базу
+			square.color = colors[square.level];
+			square.flora = flora[square.Floraevel];
+			tableMap.squares[h][w] = square;
+		}
+
+	</script>
+</body>
+</html>
